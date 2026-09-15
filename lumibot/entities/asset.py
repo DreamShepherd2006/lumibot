@@ -1,5 +1,6 @@
 from collections import UserDict
 from enum import Enum
+from typing import Optional
 
 from lumibot._lazy_imports import lazy_class
 
@@ -195,7 +196,7 @@ class Asset:
         expiration: date = None,
         strike: float = 0.0,
         right: str = None,
-        multiplier: int = 1,
+        multiplier: Optional[int] = None,
         leverage: int = 1,
         precision: str = None,
         underlying_asset: "Asset" = None,
@@ -246,7 +247,8 @@ class Asset:
         self.symbol = symbol.upper() if symbol is not None else None
         self.asset_type = asset_type
         self.strike = strike
-        self.multiplier = multiplier
+        # None = 未指定 → 按资产类型取默认（期权 100、其余 1）；显式传入的值优先。
+        self.multiplier = multiplier if multiplier is not None else 1
         self.precision = precision
         self.underlying_asset = underlying_asset
 
@@ -270,8 +272,10 @@ class Asset:
         #
         # NOTE: This also avoids `date.today()` skew when backtesting historical periods.
 
-        # Multiplier for options must always be 100
-        if asset_type == self.AssetType.OPTION:
+        # Options default to 100 (US equity option convention). Callers may pass an explicit
+        # multiplier for non-standard contracts — e.g. crypto options where one contract is
+        # 0.1 SOL / 0.01 BTC, far below the equity default.
+        if asset_type == self.AssetType.OPTION and multiplier is None:
             self.multiplier = 100
 
         # Note: Futures multipliers should be fetched from data provider (e.g., DataBento)

@@ -215,3 +215,34 @@ def test_continuous_futures_string_representation():
     
     # Should contain the symbol at minimum
     assert "ES" in str_repr
+
+# --- contract multiplier: non-100 option contract sizes (crypto options) ---
+
+
+def test_option_multiplier_defaults_to_100_when_not_given():
+    """Unchanged for US equity options: no explicit multiplier -> 100."""
+    asset = Asset(
+        symbol="SPY", asset_type="option", strike=400,
+        expiration=datetime.date(2026, 1, 16), right="CALL",
+    )
+    assert asset.multiplier == 100
+
+
+def test_option_multiplier_accepts_explicit_contract_size():
+    """An explicit multiplier wins (crypto options: 0.1 SOL / 0.01 BTC per contract)."""
+    sol = Asset(
+        symbol="SOL", asset_type="option", strike=94,
+        expiration=datetime.date(2026, 9, 18), right="PUT", multiplier=0.1,
+    )
+    btc = Asset(
+        symbol="BTC", asset_type="option", strike=56000,
+        expiration=datetime.date(2026, 9, 18), right="CALL", multiplier=0.01,
+    )
+    assert sol.multiplier == 0.1
+    assert btc.multiplier == 0.01
+
+
+def test_non_option_multiplier_default_unchanged():
+    """Non-option assets keep the default of 1."""
+    assert Asset(symbol="ABC").multiplier == 1
+    assert Asset(symbol="BTC", asset_type="crypto").multiplier == 1
